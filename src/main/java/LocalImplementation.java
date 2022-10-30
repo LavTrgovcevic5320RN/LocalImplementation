@@ -85,23 +85,48 @@ public class LocalImplementation extends Storage{
         create(directoryName, path, -1);
     }
 
+    private boolean checkIfAdditionValid(String path, int add) {
+        String s = path.replaceAll(".*#/*", "");
+        File dir = new File(rootDirectory, s);
+        if(dir.isDirectory()) {
+            int noFiles = dir.list().length;
+            int allowedFiles;
+            allowedFiles = storageConstraint.getMaxNumberOfFiles().get(path);
+            if(allowedFiles < 0) return true;
+            return (allowedFiles >= noFiles + add);
+        }
+        throw new RuntimeException("Path not directory");
+    }
+
+    // returns false if extension illegal. true if legal
+    private boolean checkExtension(String file) {
+        String ext = file.substring(file.lastIndexOf("."));
+        return (!storageConstraint.getIllegalExtensions().contains(ext));
+    }
+
     @Override
     public void create(String directoryName, String path, int i) {
         String s = path.replaceAll(".*#/*", "") + directoryName;
-        File newDir = new File(rootDirectory, s);
-        System.out.println(newDir.mkdirs());
-        storageConstraint.getMaxNumberOfFiles().put(path+directoryName, i);
-        writeConfiguration();
+        if(checkIfAdditionValid(s, 1)) {
+            File newDir = new File(rootDirectory, s);
+            System.out.println(newDir.mkdirs());
+            storageConstraint.getMaxNumberOfFiles().put(path+directoryName, i);
+            writeConfiguration();
+        } else throw new InvalidConstraintException("Directory full");
     }
 
     @Override
     public void setMaxFiles(String s, int i) {
-
+        // postaviti u constraint mapi vrednost na i
     }
 
     @Override
-    public void create(String s, String s1, String s2) {
+    public void createExpanded(String path, String pattern) {
+        String s = path.replaceAll(".*#/*", "");
+        List<String> expandedList = BraceExpansion.expand(pattern);
+        if(checkIfAdditionValid(s, expandedList.size())) {
 
+        }
     }
 
     @Override
@@ -146,7 +171,12 @@ public class LocalImplementation extends Storage{
 
     @Override
     public Collection<String> searchFilesInDirectory(String s) {
-        return null;
+        String p = s.replaceAll(".*#/*", "");
+        File dir = new File(rootDirectory, p);
+        if(dir.isDirectory()) {
+           return Arrays.asList(dir.list());
+        }
+        return new ArrayList<>();
     }
 
     @Override
