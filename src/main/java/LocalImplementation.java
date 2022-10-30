@@ -82,16 +82,16 @@ public class LocalImplementation extends Storage{
 
     @Override
     public void create(String directoryName, String path) {
-        String s = path.replaceAll(".*#/*", "") + directoryName;
-        File newDir = new File(rootDirectory, s);
-        System.out.println(newDir.mkdirs());
-        storageConstraint.getMaxNumberOfFiles().put(path+directoryName, -1);
-        writeConfiguration();
+        create(directoryName, path, -1);
     }
 
     @Override
-    public void create(String s, String s1, int i) {
-
+    public void create(String directoryName, String path, int i) {
+        String s = path.replaceAll(".*#/*", "") + directoryName;
+        File newDir = new File(rootDirectory, s);
+        System.out.println(newDir.mkdirs());
+        storageConstraint.getMaxNumberOfFiles().put(path+directoryName, i);
+        writeConfiguration();
     }
 
     @Override
