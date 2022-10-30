@@ -1,7 +1,9 @@
+import exceptions.FileException;
 import exceptions.InvalidConstraintException;
 import storage.StorageConstraint;
 
 import java.io.*;
+import java.nio.file.*;
 import java.util.*;
 
 public class LocalImplementation extends Storage{
@@ -110,9 +112,13 @@ public class LocalImplementation extends Storage{
         if(checkIfAdditionValid(s, 1)) {
             File newDir = new File(rootDirectory, s);
             System.out.println(newDir.mkdirs());
-            storageConstraint.getMaxNumberOfFiles().put(path+directoryName, i);
+            storageConstraint.getMaxNumberOfFiles().put(path + "\\" + directoryName, i);
             writeConfiguration();
-        } else throw new InvalidConstraintException("Directory full");
+        } else try {
+            throw new InvalidConstraintException("Directory full");
+        } catch (InvalidConstraintException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -121,13 +127,10 @@ public class LocalImplementation extends Storage{
     }
 
     @Override
-    public void createExpanded(String path, String pattern) {
-        String s = path.replaceAll(".*#/*", "");
-        List<String> expandedList = BraceExpansion.expand(pattern);
-        if(checkIfAdditionValid(s, expandedList.size())) {
+    public void create(String s, String s1, String s2) {
 
-        }
     }
+
 
     @Override
     public void uploadFile(String s, String s1) throws InvalidConstraintException {
@@ -140,12 +143,59 @@ public class LocalImplementation extends Storage{
     }
 
     @Override
-    public void delete(String s) {
-
+    public void delete(String path) {
+        File directory = new File(path);
+        File[] files = directory.listFiles();
+        for(File file : files){
+            System.out.println(file.getName());
+            file.delete();
+        }
     }
 
     @Override
-    public void moveFile(String s, String s1, String s2) throws InvalidConstraintException {
+    public void moveFile(String destination, String... sources) throws InvalidConstraintException, FileNotFoundException {
+        String fullPath = rootDirectory + "/" + destination;
+        File destinationFolder = new File(fullPath);
+
+        if(!destinationFolder.exists())
+            throw new FileNotFoundException();
+
+        if(storageConstraint.getMaxNumberOfFiles().containsKey("fullpath")){
+            int numberOfFiles = destinationFolder.listFiles().length;
+            if(numberOfFiles + sources.length > storageConstraint.getMaxNumberOfFiles().get(fullPath))
+                throw new FileException("preko limita");
+        }
+
+        for(String source: sources) {
+
+            source = rootDirectory.getPath() + "/" + source;
+            System.out.println(source);
+            File sourceFile = new File(source);
+
+            // Provera da li postoji fajl na prosledjenoj putanji:
+            if(!sourceFile.exists()) {
+                throw new FileNotFoundException();
+            }
+
+            Path result = null;
+
+            try {
+                String resultingPath = rootDirectory.getPath() + "/" + destination + "/" + Paths.get(source).getFileName();
+                result = Files.move(Paths.get(source), Paths.get(resultingPath), StandardCopyOption.REPLACE_EXISTING);
+            } catch (NoSuchFileException e1) {
+                e1.printStackTrace();
+                return;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            if(result == null)
+                try {
+                    throw new Exception("Operacija se nije izvrsila");
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+        }
+
 
     }
 
