@@ -11,8 +11,8 @@ public class LocalImplementation extends Storage{
     @Override
     public void initialiseDirectory(String storageName, String path, int size, int maxFiles, String... bannedExtensions) {
         File directory = new File(path + "\\" + storageName);
+        if(directory.exists() && directory.isDirectory() && directory.list().length > 0) throw new FileException("Storage can not be initialized, target directory exists");
         rootDirectory = directory;
-        System.out.println(directory.getPath());
         storageConstraint = new StorageConstraint();
         if (size >= 0) {
             storageConstraint.setByteSizeQuota(size);
@@ -29,6 +29,7 @@ public class LocalImplementation extends Storage{
             System.err.println("MKDIR FAILED!");
         } else {
             writeConfiguration();
+            System.out.println("Kreirano skladiste na " + directory.getPath());
         }
 //
 //            if (storageName.contains(".")) {
@@ -61,6 +62,13 @@ public class LocalImplementation extends Storage{
         }
     }
 
+    private String getAbsolutePath(String relative) {
+        relative = relative.trim();
+        if(!relative.startsWith("#")) throw new FileException("Invalid path");
+        relative = relative.replaceAll("\\\\", "/");
+        return relative.replaceFirst("(#/*)", rootDirectory.getAbsolutePath().replaceAll("\\\\", "/") + "/");
+    }
+
     @Override
     public void openDirectory(String s) {
         File directory = new File(s);
@@ -72,9 +80,6 @@ public class LocalImplementation extends Storage{
             e.printStackTrace();
         }
         System.out.println(storageConstraint);
-        System.out.println(storageConstraint.getByteSizeQuota());
-        System.out.println(storageConstraint.getMaxNumberOfFiles());
-        System.out.println(storageConstraint.getIllegalExtensions());
     }
 
     @Override
@@ -88,16 +93,17 @@ public class LocalImplementation extends Storage{
     }
 
     private boolean checkIfAdditionValid(String path, int add) {
-        String s = path.replaceAll(".*#/*", "");
-        File dir = new File(rootDirectory, s);
+        String s = getAbsolutePath(path);
+        File dir = new File(s);
         if(dir.isDirectory()) {
             int noFiles = dir.list().length;
             int allowedFiles;
+            path = path.replaceFirst("[/\\\\]$", "");
             allowedFiles = storageConstraint.getMaxNumberOfFiles().get(path);
             if(allowedFiles < 0) return true;
             return (allowedFiles >= noFiles + add);
         }
-        throw new RuntimeException("Path not directory");
+        throw new RuntimeException("Path " + dir + " not directory");
     }
 
     // returns false if extension illegal. true if legal
@@ -127,12 +133,6 @@ public class LocalImplementation extends Storage{
     }
 
     @Override
-    public void create(String s, String s1, String s2) {
-
-    }
-
-
-    @Override
     public void uploadFile(String s, String s1) throws InvalidConstraintException {
 
     }
@@ -144,7 +144,8 @@ public class LocalImplementation extends Storage{
 
     @Override
     public void delete(String path) {
-        File directory = new File(path);
+        String s = getAbsolutePath(path);
+        File directory = new File(s);
         File[] files = directory.listFiles();
         for(File file : files){
             System.out.println(file.getName());
@@ -154,17 +155,15 @@ public class LocalImplementation extends Storage{
 
     @Override
     public void moveFile(String destination, String... sources) throws InvalidConstraintException, FileNotFoundException {
-        String fullPath = rootDirectory + "/" + destination;
+        String fullPath = getAbsolutePath(destination);
         File destinationFolder = new File(fullPath);
 
         if(!destinationFolder.exists())
             throw new FileNotFoundException();
 
-        if(storageConstraint.getMaxNumberOfFiles().containsKey("fullpath")){
-            int numberOfFiles = destinationFolder.listFiles().length;
-            if(numberOfFiles + sources.length > storageConstraint.getMaxNumberOfFiles().get(fullPath))
-                throw new FileException("preko limita");
-        }
+        //if(storageConstraint.getMaxNumberOfFiles().containsKey("fullpath")){
+            if(!checkIfAdditionValid(destination, sources.length)) throw new FileException("preko limita");
+        //}
 
         for(String source: sources) {
 
@@ -195,7 +194,10 @@ public class LocalImplementation extends Storage{
                     throw new RuntimeException(e);
                 }
         }
+    }
 
+    @Override
+    public void createExpanded(String s, String s1) {
 
     }
 
@@ -221,12 +223,13 @@ public class LocalImplementation extends Storage{
 
     @Override
     public Collection<String> searchFilesInDirectory(String s) {
-        String p = s.replaceAll(".*#/*", "");
-        File dir = new File(rootDirectory, p);
+        String p = getAbsolutePath(s);
+        File dir = new File(p);
+        List<String> ret = new ArrayList<>();
         if(dir.isDirectory()) {
-           return Arrays.asList(dir.list());
+            ret.addAll(Arrays.asList(dir.list()));
         }
-        return new ArrayList<>();
+        return ret;
     }
 
     @Override
