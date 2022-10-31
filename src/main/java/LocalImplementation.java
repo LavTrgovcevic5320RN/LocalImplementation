@@ -114,11 +114,11 @@ public class LocalImplementation extends Storage{
 
     @Override
     public void create(String directoryName, String path, int i) {
-        String s = path.replaceAll(".*#/*", "") + directoryName;
-        if(checkIfAdditionValid(s, 1)) {
-            File newDir = new File(rootDirectory, s);
+        String s = getAbsolutePath(path + directoryName);
+        if(checkIfAdditionValid(path, 1)) {
+            File newDir = new File(s);
             System.out.println(newDir.mkdirs());
-            storageConstraint.getMaxNumberOfFiles().put(path + "\\" + directoryName, i);
+            storageConstraint.getMaxNumberOfFiles().put(path +  directoryName, i);
             writeConfiguration();
         } else try {
             throw new InvalidConstraintException("Directory full");
@@ -142,15 +142,35 @@ public class LocalImplementation extends Storage{
 
     }
 
+    /**
+     * Deletes a provided file. If file is a directory, it will empty it before deletion
+     * @implNote this method is dangerous since it recursively deletes content and subdirectories!
+     * @param path target to delete
+     */
     @Override
     public void delete(String path) {
         String s = getAbsolutePath(path);
-        File directory = new File(s);
-        File[] files = directory.listFiles();
-        for(File file : files){
-            System.out.println(file.getName());
-            file.delete();
+        File file = new File(s);
+        if(file.exists()) if(recursiveDelete(file)) writeConfiguration();
+    }
+
+    private boolean recursiveDelete(File fileOrDirectory) {
+        boolean configurationWriteNeeded = false;
+        if(fileOrDirectory.isDirectory()) {
+            for(File file : fileOrDirectory.listFiles()) {
+                recursiveDelete(file);
+            }
+            storageConstraint.getMaxNumberOfFiles().remove(getRelativePathOfDirectory(fileOrDirectory));
+            configurationWriteNeeded = true;
         }
+        fileOrDirectory.delete();
+        return configurationWriteNeeded;
+    }
+
+    private String getRelativePathOfDirectory(File path) {
+        String normPath = path.getAbsolutePath().replace(rootDirectory.getAbsolutePath(), "#/").replaceAll("(/\\\\|\\\\/)", "/");
+        System.out.println(normPath);
+        return normPath;
     }
 
     @Override
