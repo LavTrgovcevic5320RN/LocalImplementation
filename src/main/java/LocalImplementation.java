@@ -126,6 +126,29 @@ public class LocalImplementation extends Storage{
         } else throw new InvalidConstraintException("Directory full");
     }
 
+    public long getTotalSize() {
+        return getSubSize(rootDirectory);
+    }
+
+    public long getSubSize(File directory) {
+        long sum = 0;
+        for(File sub: directory.listFiles()) {
+            if(sub.isDirectory()) sum += getSubSize(sub);
+            else {
+                try {
+                    sum += Files.size(Paths.get(sub.getAbsolutePath()));
+                } catch (IOException ioException) {
+                    ioException.printStackTrace();
+                }
+            }
+        }
+        return sum;
+    }
+
+    public boolean checkForSpace(long additional) {
+        return getTotalSize() + additional <= storageConstraint.getByteSizeQuota();
+    }
+
     @Override
     public void uploadFile(String destination, String filePath) throws InvalidConstraintException {
         if(destination.matches("[/\\\\]$")) destination += "/";
@@ -134,9 +157,10 @@ public class LocalImplementation extends Storage{
         if(!checkIfAdditionValid(destination, 1)) throw new FileException("Destination full");
         File source = new File(filePath);
         dest = new File(dest, source.getName());
-        if(!source.exists()) throw new FileException("Destination does not exist");
+        if(!source.exists()) throw new FileException("Source does not exist");
+        if(checkExtension(source.getName())) throw new FileException("Source has illegal extension");
         try {
-            System.out.println(source + " " + dest);
+            if(checkForSpace(Files.size(Paths.get(source.getAbsolutePath())))) throw new InvalidConstraintException("Not enough space for file");
             Path result = Files.move(Paths.get(source.getAbsolutePath()), Paths.get(dest.getAbsolutePath()), StandardCopyOption.REPLACE_EXISTING);
             if(!result.toFile().exists()) System.err.println("Upload failed");
         } catch (IOException e1) {
