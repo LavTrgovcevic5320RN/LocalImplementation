@@ -7,7 +7,15 @@ import java.nio.file.*;
 import java.util.*;
 
 public class LocalImplementation extends Storage{
-    File rootDirectory;
+    private static LocalImplementation instance = null;
+    private static File rootDirectory;
+
+    public static LocalImplementation getInstance() {
+        if (instance == null)
+            instance = new LocalImplementation();
+        return instance;
+    }
+
     @Override
     public void initialiseDirectory(String storageName, String path, int size, int maxFiles, String... bannedExtensions) {
         File directory = new File(path + "\\" + storageName);
@@ -64,7 +72,7 @@ public class LocalImplementation extends Storage{
 
     private String getAbsolutePath(String relative) {
         relative = relative.trim();
-        if(!relative.startsWith("#")) throw new FileException("Invalid path");
+        //if(!relative.startsWith("#")) throw new FileException("Invalid path");
         relative = relative.replaceAll("\\\\", "/");
         return relative.replaceFirst("(#/*)", rootDirectory.getAbsolutePath().replaceAll("\\\\", "/") + "/");
     }
@@ -74,6 +82,7 @@ public class LocalImplementation extends Storage{
         File directory = new File(s);
         rootDirectory = directory;
         System.out.println(directory.getPath());
+
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(new File(directory, "directory.conf"))))  {
             storageConstraint = (StorageConstraint) ois.readObject();
         } catch (IOException | ClassNotFoundException e) {
@@ -85,11 +94,6 @@ public class LocalImplementation extends Storage{
     @Override
     public void setStorageSize(int i) {
 
-    }
-
-    @Override
-    public void create(String directoryName, String path) {
-        create(directoryName, path, -1);
     }
 
     private boolean checkIfAdditionValid(String path, int add) {
@@ -113,18 +117,23 @@ public class LocalImplementation extends Storage{
     }
 
     @Override
+    public void create(String directoryName, String path) {
+        create(directoryName, path, -1);
+    }
+
+    @Override
     public void create(String directoryName, String path, int i) {
         String s = getAbsolutePath(path + directoryName);
-        if(checkIfAdditionValid(path, 1)) {
+//        if(checkIfAdditionValid(path, 1)) {
             File newDir = new File(s);
             System.out.println(newDir.mkdirs());
             storageConstraint.getMaxNumberOfFiles().put(path +  directoryName, i);
             writeConfiguration();
-        } else try {
-            throw new InvalidConstraintException("Directory full");
-        } catch (InvalidConstraintException e) {
-            throw new RuntimeException(e);
-        }
+//        } else try {
+//            throw new InvalidConstraintException("Directory full");
+//        } catch (InvalidConstraintException e) {
+//            throw new RuntimeException(e);
+//        }
     }
 
     @Override
@@ -174,19 +183,21 @@ public class LocalImplementation extends Storage{
     }
 
     @Override
-    public void moveFile(String destination, String... sources) throws InvalidConstraintException, FileNotFoundException {
+    public void moveFiles(String destination, String... sources) throws InvalidConstraintException, FileNotFoundException {
         String fullPath = getAbsolutePath(destination);
         File destinationFolder = new File(fullPath);
 
         if(!destinationFolder.exists())
             throw new FileNotFoundException();
 
-        //if(storageConstraint.getMaxNumberOfFiles().containsKey("fullpath")){
-            if(!checkIfAdditionValid(destination, sources.length)) throw new FileException("preko limita");
-        //}
+        List<String> list = new ArrayList<>();
+        for(String source: sources)
+            if(checkExtension(source))
+                list.add(source);
 
-        for(String source: sources) {
+//        if(!checkIfAdditionValid(destination, list.size())) throw new FileException("preko limita");
 
+        for(String source: list) {
             source = rootDirectory.getPath() + "/" + source;
             System.out.println(source);
             File sourceFile = new File(source);
@@ -197,7 +208,6 @@ public class LocalImplementation extends Storage{
             }
 
             Path result = null;
-
             try {
                 String resultingPath = rootDirectory.getPath() + "/" + destination + "/" + Paths.get(source).getFileName();
                 result = Files.move(Paths.get(source), Paths.get(resultingPath), StandardCopyOption.REPLACE_EXISTING);
@@ -217,12 +227,9 @@ public class LocalImplementation extends Storage{
     }
 
     @Override
-    public void createExpanded(String s, String s1) {
+    public void createExpanded(String path, String pattern) {
+        List<String> list = BraceExpansion.expand(pattern);
 
-    }
-
-    @Override
-    public void moveFiles(Collection<String> collection, String s, String s1) throws InvalidConstraintException {
 
     }
 
@@ -232,8 +239,13 @@ public class LocalImplementation extends Storage{
     }
 
     @Override
-    public void rename(String s, String s1) {
+    public void rename(String newName, String path) {
+        File fileOldName = new File(path);
+        File fileNewName = new File(fileOldName.getParentFile().getPath() + "\\" + newName);
+//        System.out.println(fileOldName.getPath());
+//        System.out.println(fileNewName.getPath());
 
+        System.out.println("promenjeno ime je:" + fileOldName.renameTo(fileNewName));
     }
 
     @Override
@@ -242,8 +254,8 @@ public class LocalImplementation extends Storage{
     }
 
     @Override
-    public Collection<String> searchFilesInDirectory(String s) {
-        String p = getAbsolutePath(s);
+    public Collection<String> searchFilesInDirectory(String path) {
+        String p = getAbsolutePath(path);
         File dir = new File(p);
         List<String> ret = new ArrayList<>();
         if(dir.isDirectory()) {
@@ -253,22 +265,22 @@ public class LocalImplementation extends Storage{
     }
 
     @Override
-    public Collection<String> searchFilesInAllDirectories(String s) {
+    public Collection<String> searchFilesInAllDirectories(String path) {
         return null;
     }
 
     @Override
-    public Collection<String> searchFilesInDirectoryAndBelow(String s) {
+    public Collection<String> searchFilesInDirectoryAndBelow(String path) {
         return null;
     }
 
     @Override
-    public Collection<String> searchFilesWithExtension(String s) {
+    public Collection<String> searchFilesWithExtension(String path, String extension) {
         return null;
     }
 
     @Override
-    public Collection<String> searchFilesThatContain(String s) {
+    public Collection<String> searchFilesThatContain(String path, String substring) {
         return null;
     }
 
