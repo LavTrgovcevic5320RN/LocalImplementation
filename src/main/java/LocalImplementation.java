@@ -72,7 +72,7 @@ public class LocalImplementation extends Storage{
 
     private String getAbsolutePath(String relative) {
         relative = relative.trim();
-        //if(!relative.startsWith("#")) throw new FileException("Invalid path");
+        if(!relative.startsWith("#")) throw new FileException("Invalid path");
         relative = relative.replaceAll("\\\\", "/");
         return relative.replaceFirst("(#/*)", rootDirectory.getAbsolutePath().replaceAll("\\\\", "/") + "/");
     }
@@ -81,19 +81,13 @@ public class LocalImplementation extends Storage{
     public void openDirectory(String s) {
         File directory = new File(s);
         rootDirectory = directory;
-        System.out.println(directory.getPath());
-
+        //System.out.println(directory.getPath());
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(new File(directory, "directory.conf"))))  {
             storageConstraint = (StorageConstraint) ois.readObject();
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
         System.out.println(storageConstraint);
-    }
-
-    @Override
-    public void setStorageSize(int i) {
-
     }
 
     private boolean checkIfAdditionValid(String path, int add) {
@@ -124,26 +118,30 @@ public class LocalImplementation extends Storage{
     @Override
     public void create(String directoryName, String path, int i) {
         String s = getAbsolutePath(path + directoryName);
-//        if(checkIfAdditionValid(path, 1)) {
+        if(checkIfAdditionValid(path, 1)) {
             File newDir = new File(s);
             System.out.println(newDir.mkdirs());
             storageConstraint.getMaxNumberOfFiles().put(path +  directoryName, i);
             writeConfiguration();
-//        } else try {
-//            throw new InvalidConstraintException("Directory full");
-//        } catch (InvalidConstraintException e) {
-//            throw new RuntimeException(e);
-//        }
+        } else throw new InvalidConstraintException("Directory full");
     }
 
     @Override
-    public void setMaxFiles(String s, int i) {
-        // postaviti u constraint mapi vrednost na i
-    }
-
-    @Override
-    public void uploadFile(String s, String s1) throws InvalidConstraintException {
-
+    public void uploadFile(String destination, String filePath) throws InvalidConstraintException {
+        if(destination.matches("[/\\\\]$")) destination += "/";
+        File dest = new File(getAbsolutePath(destination));
+        if(!dest.exists() || !dest.isDirectory()) throw new FileException("Destination is not an existing directory");
+        if(!checkIfAdditionValid(destination, 1)) throw new FileException("Destination full");
+        File source = new File(filePath);
+        dest = new File(dest, source.getName());
+        if(!source.exists()) throw new FileException("Destination does not exist");
+        try {
+            System.out.println(source + " " + dest);
+            Path result = Files.move(Paths.get(source.getAbsolutePath()), Paths.get(dest.getAbsolutePath()), StandardCopyOption.REPLACE_EXISTING);
+            if(!result.toFile().exists()) System.err.println("Upload failed");
+        } catch (IOException e1) {
+            e1.printStackTrace();
+        }
     }
 
     @Override
@@ -178,34 +176,30 @@ public class LocalImplementation extends Storage{
 
     private String getRelativePathOfDirectory(File path) {
         String normPath = path.getAbsolutePath().replace(rootDirectory.getAbsolutePath(), "#/").replaceAll("(/\\\\|\\\\/)", "/");
-        System.out.println(normPath);
+//        System.out.println(normPath);
         return normPath;
     }
 
     @Override
-    public void moveFiles(String destination, String... sources) throws InvalidConstraintException, FileNotFoundException {
+    public void moveFiles(String destination, String... sources) throws InvalidConstraintException {
         String fullPath = getAbsolutePath(destination);
         File destinationFolder = new File(fullPath);
 
-        if(!destinationFolder.exists())
-            throw new FileNotFoundException();
+        if(!destinationFolder.exists()) throw new FileException("Destination directory does not exist");
 
         List<String> list = new ArrayList<>();
         for(String source: sources)
             if(checkExtension(source))
                 list.add(source);
 
-//        if(!checkIfAdditionValid(destination, list.size())) throw new FileException("preko limita");
+        if(!checkIfAdditionValid(destination, list.size())) throw new InvalidConstraintException("Too many files in target directory");
 
         for(String source: list) {
             source = getAbsolutePath(source);
-            System.out.println(source);
             File sourceFile = new File(source);
 
             // Provera da li postoji fajl na prosledjenoj putanji:
-            if(!sourceFile.exists()) {
-                throw new FileNotFoundException();
-            }
+            if(!sourceFile.exists()) throw new FileException(String.format("File selected for move on path %s does not exist", sourceFile.getAbsolutePath()));
 
             Path result = null;
             try {
@@ -213,18 +207,10 @@ public class LocalImplementation extends Storage{
                 resultingPath = resultingPath.replaceFirst("#[/\\\\]", "");
                 System.out.println(resultingPath);
                 result = Files.move(Paths.get(source), Paths.get(resultingPath), StandardCopyOption.REPLACE_EXISTING);
-            } catch (NoSuchFileException e1) {
-                e1.printStackTrace();
-                return;
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            if(result == null)
-                try {
-                    throw new Exception("Operacija se nije izvrsila");
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
+            if(result == null) System.out.println("Unsuccessful operation");
         }
     }
 
@@ -253,6 +239,16 @@ public class LocalImplementation extends Storage{
     @Override
     public long getStorageByteSize() {
         return 0;
+    }
+
+    @Override
+    public void setStorageSize(int i) {
+
+    }
+
+    @Override
+    public void setMaxFiles(String s, int i) {
+        // postaviti u constraint mapi vrednost na i
     }
 
     @Override

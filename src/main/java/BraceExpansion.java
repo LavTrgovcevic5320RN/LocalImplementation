@@ -20,15 +20,14 @@ public class BraceExpansion {
     // rekurzivno ekspandira stringove tipa {a,b}
     private static void expandR(String pre, String s, String suf) {
         int i1 = -1, i2 = 0;
-        String noEscape = s.replaceAll("([\\\\]{2}|[\\\\][,}{])", "  ");
         StringBuilder sb = null;
 
         outer:
-        while ((i1 = noEscape.indexOf('{', i1 + 1)) != -1) {
+        while ((i1 = s.indexOf('{', i1 + 1)) != -1) {
             i2 = i1 + 1;
             sb = new StringBuilder(s);
             for (int depth = 1; i2 < s.length() && depth > 0; i2++) {
-                char c = noEscape.charAt(i2);
+                char c = s.charAt(i2);
                 depth = (c == '{') ? ++depth : depth;
                 depth = (c == '}') ? --depth : depth;
                 if (c == ',' && depth == 1) {
