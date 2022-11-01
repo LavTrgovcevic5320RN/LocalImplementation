@@ -198,7 +198,7 @@ public class LocalImplementation extends Storage{
 //        if(!checkIfAdditionValid(destination, list.size())) throw new FileException("preko limita");
 
         for(String source: list) {
-            source = rootDirectory.getPath() + "/" + source;
+            source = getAbsolutePath(source);
             System.out.println(source);
             File sourceFile = new File(source);
 
@@ -210,6 +210,8 @@ public class LocalImplementation extends Storage{
             Path result = null;
             try {
                 String resultingPath = rootDirectory.getPath() + "/" + destination + "/" + Paths.get(source).getFileName();
+                resultingPath = resultingPath.replaceFirst("#[/\\\\]", "");
+                System.out.println(resultingPath);
                 result = Files.move(Paths.get(source), Paths.get(resultingPath), StandardCopyOption.REPLACE_EXISTING);
             } catch (NoSuchFileException e1) {
                 e1.printStackTrace();
