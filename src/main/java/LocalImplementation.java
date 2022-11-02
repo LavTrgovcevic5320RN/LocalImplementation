@@ -1,6 +1,8 @@
 import exceptions.FileException;
 import exceptions.InvalidConstraintException;
+import storage.DateType;
 import storage.FileMetaData;
+import storage.Filter;
 import storage.StorageConstraint;
 
 import java.io.*;
@@ -350,7 +352,7 @@ public class LocalImplementation extends Storage{
         Collection<FileMetaData> allFiles = searchFilesInDirectoryAndBelow("#");
         Collection<FileMetaData> matching = allFiles.stream().filter(fileMetaData -> fileMetaData.getName().equalsIgnoreCase(s)).collect(Collectors.toList());
         Collection<String> paths = new HashSet<>();
-        for(FileMetaData f : matching) paths.add(getRelativePathOfDirectory(new File(f.getFullPath().replaceFirst("\\{1,2}|/.*$", ""))));
+        for(FileMetaData f : matching) paths.add(f.getFullPath().substring(0, Math.max(f.getFullPath().lastIndexOf('\\'), f.getFullPath().lastIndexOf('/'))));
         return paths;
     }
 
@@ -370,7 +372,9 @@ public class LocalImplementation extends Storage{
     }
 
     @Override
-    public Collection<FileMetaData> searchByDirectoryDateRange(Date date, Date date1, String s) {
-        return null;
+    public Collection<FileMetaData> searchByDirectoryDateRange(Date startDate, Date endDate, DateType sortDateType, String path) {
+        Collection<FileMetaData> allFiles = searchFilesInDirectory(path);
+        Filter f = new Filter(startDate, endDate, sortDateType);
+        return f.applyFilter(allFiles);
     }
 }
