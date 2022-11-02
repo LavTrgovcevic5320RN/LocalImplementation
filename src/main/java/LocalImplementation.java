@@ -1,9 +1,11 @@
 import exceptions.FileException;
 import exceptions.InvalidConstraintException;
+import storage.FileMetaData;
 import storage.StorageConstraint;
 
 import java.io.*;
 import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 
 public class LocalImplementation extends Storage{
@@ -255,9 +257,6 @@ public class LocalImplementation extends Storage{
     public void rename(String newName, String path) {
         File fileOldName = new File(path);
         File fileNewName = new File(fileOldName.getParentFile().getPath() + "\\" + newName);
-//        System.out.println(fileOldName.getPath());
-//        System.out.println(fileNewName.getPath());
-
         System.out.println("promenjeno ime je:" + fileOldName.renameTo(fileNewName));
     }
 
@@ -279,33 +278,47 @@ public class LocalImplementation extends Storage{
     }
 
     @Override
-    public Collection<String> searchFilesInDirectory(String path) {
+    public Collection<FileMetaData> searchFilesInDirectory(String path) {
         String p = getAbsolutePath(path);
         File dir = new File(p);
-        List<String> ret = new ArrayList<>();
+        List<FileMetaData> ret = new ArrayList<>();
         if(dir.isDirectory()) {
-            ret.addAll(Arrays.asList(dir.list()));
-        }
+            File[] files = dir.listFiles();
+            for(File file : files) {
+                ret.add(readMetadata(file));
+            }
+        } else ret.add(readMetadata(dir));
         return ret;
     }
 
-    @Override
-    public Collection<String> searchFilesInAllDirectories(String path) {
+    private FileMetaData readMetadata(File f) {
+        try {
+            BasicFileAttributes bfa = Files.readAttributes(f.toPath(), BasicFileAttributes.class);
+            return new FileMetaData(f.getName(), getRelativePathOfDirectory(f), Date.from(bfa.lastModifiedTime().toInstant()), Date.from(bfa.lastAccessTime().toInstant()),
+                    Date.from(bfa.creationTime().toInstant()), Files.size(f.toPath()),bfa.isDirectory() ? FileMetaData.Type.DIRECTORY : FileMetaData.Type.FILE);
+        } catch (IOException ioException) {
+            ioException.printStackTrace();
+        }
         return null;
     }
 
     @Override
-    public Collection<String> searchFilesInDirectoryAndBelow(String path) {
+    public Collection<FileMetaData> searchFilesInAllDirectories(String path) {
         return null;
     }
 
     @Override
-    public Collection<String> searchFilesWithExtension(String path, String extension) {
+    public Collection<FileMetaData> searchFilesInDirectoryAndBelow(String path) {
         return null;
     }
 
     @Override
-    public Collection<String> searchFilesThatContain(String path, String substring) {
+    public Collection<FileMetaData> searchFilesWithExtension(String path, String extension) {
+        return null;
+    }
+
+    @Override
+    public Collection<FileMetaData> searchFilesThatContain(String path, String substring) {
         return null;
     }
 
@@ -330,12 +343,12 @@ public class LocalImplementation extends Storage{
     }
 
     @Override
-    public Collection<String> searchByNameSorted(String s, Boolean aBoolean) {
+    public Collection<FileMetaData> searchByNameSorted(String s, Boolean aBoolean) {
         return null;
     }
 
     @Override
-    public Collection<String> searchByDirectoryDateRange(Date date, Date date1, String s) {
+    public Collection<FileMetaData> searchByDirectoryDateRange(Date date, Date date1, String s) {
         return null;
     }
 }
