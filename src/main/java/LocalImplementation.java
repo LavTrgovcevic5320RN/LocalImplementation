@@ -30,6 +30,7 @@ public class LocalImplementation extends Storage{
 
 
         if (bannedExtensions.length > 0) {
+            for(int i = 0 ; i < bannedExtensions.length; i++) bannedExtensions[i] = bannedExtensions[i].toLowerCase();
             storageConstraint.getIllegalExtensions().addAll(Arrays.asList(bannedExtensions));
             System.out.println(storageConstraint.getIllegalExtensions());
         }
@@ -106,7 +107,7 @@ public class LocalImplementation extends Storage{
 
     // returns false if extension illegal. true if legal
     private boolean checkExtension(String file) {
-        String ext = file.substring(file.lastIndexOf("."));
+        String ext = file.substring(file.lastIndexOf(".")+1).toLowerCase();
         return (!storageConstraint.getIllegalExtensions().contains(ext));
     }
 
@@ -126,11 +127,7 @@ public class LocalImplementation extends Storage{
         } else throw new InvalidConstraintException("Directory full");
     }
 
-    public long getTotalSize() {
-        return getSubSize(rootDirectory);
-    }
-
-    public long getSubSize(File directory) {
+    private long getSubSize(File directory) {
         long sum = 0;
         for(File sub: directory.listFiles()) {
             if(sub.isDirectory()) sum += getSubSize(sub);
@@ -145,32 +142,36 @@ public class LocalImplementation extends Storage{
         return sum;
     }
 
-    public boolean checkForSpace(long additional) {
-        return getTotalSize() + additional <= storageConstraint.getByteSizeQuota();
+    private boolean checkForSpace(long additional) {
+        return getStorageByteSize() + additional <= storageConstraint.getByteSizeQuota();
     }
 
     @Override
-    public void uploadFile(String destination, String filePath) throws InvalidConstraintException {
+    public void uploadFiles(String destination, String... sources) throws InvalidConstraintException {
         if(destination.matches("[/\\\\]$")) destination += "/";
         File dest = new File(getAbsolutePath(destination));
         if(!dest.exists() || !dest.isDirectory()) throw new FileException("Destination is not an existing directory");
-        if(!checkIfAdditionValid(destination, 1)) throw new FileException("Destination full");
-        File source = new File(filePath);
-        dest = new File(dest, source.getName());
-        if(!source.exists()) throw new FileException("Source does not exist");
-        if(checkExtension(source.getName())) throw new FileException("Source has illegal extension");
-        try {
-            if(checkForSpace(Files.size(Paths.get(source.getAbsolutePath())))) throw new InvalidConstraintException("Not enough space for file");
-            Path result = Files.move(Paths.get(source.getAbsolutePath()), Paths.get(dest.getAbsolutePath()), StandardCopyOption.REPLACE_EXISTING);
-            if(!result.toFile().exists()) System.err.println("Upload failed");
-        } catch (IOException e1) {
-            e1.printStackTrace();
+        if(!checkIfAdditionValid(destination, sources.length)) throw new FileException("Destination full");
+        long size = 0;
+        for(String s : sources) {
+            File source = new File(s);
+            dest = new File(dest, source.getName());
+            if(!source.exists()) throw new FileException("Source does not exist");
+            if(!checkExtension(source.getName())) throw new FileException("Source has illegal extension");
+            try {
+                size += Files.size(Paths.get(source.getAbsolutePath()));
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
         }
-    }
-
-    @Override
-    public void uploadFiles(String s, String s1, String... strings) throws InvalidConstraintException {
-
+        if(checkForSpace(size)) for(String s : sources) {
+            try {
+                Path result = Files.move(Paths.get(s), Paths.get(dest.getAbsolutePath()), StandardCopyOption.REPLACE_EXISTING);
+                if(!result.toFile().exists()) System.err.println("Upload failed");
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+        }
     }
 
     /**
@@ -262,12 +263,14 @@ public class LocalImplementation extends Storage{
 
     @Override
     public long getStorageByteSize() {
-        return 0;
+        return getSubSize(rootDirectory);
     }
 
     @Override
-    public void setStorageSize(int i) {
-
+    public void setSizeQuota(long i) {
+        if(storageConstraint.getByteSizeQuota() <= i || getStorageByteSize() <= i) storageConstraint.setByteSizeQuota(i);
+        else throw new InvalidConstraintException("New storage constraint smaller than current size");
+        writeConfiguration();
     }
 
     @Override
