@@ -332,17 +332,26 @@ public class LocalImplementation extends Storage{
 
     @Override
     public Collection<FileMetaData> searchFilesThatContain(String path, String substring) {
-        return null;
+        Collection<FileMetaData> allFiles = searchFilesInDirectoryAndBelow("#");
+        final String finalSubstring = substring.toLowerCase();
+        return allFiles.stream().filter(fileMetaData -> fileMetaData.getName().toLowerCase().contains(finalSubstring)).collect(Collectors.toList());
     }
 
     @Override
     public boolean searchIfFilesExist(String s, String... strings) {
-        return false;
+        Collection<FileMetaData> allFiles = searchFilesInDirectory(s);
+        Collection<String> names = new HashSet<>();
+        for(FileMetaData f : allFiles) names.add(f.getName());
+        return names.containsAll(Arrays.asList(strings));
     }
 
     @Override
-    public String searchFile(String s) {
-        return null;
+    public Collection<String> searchFile(final String s) {
+        Collection<FileMetaData> allFiles = searchFilesInDirectoryAndBelow("#");
+        Collection<FileMetaData> matching = allFiles.stream().filter(fileMetaData -> fileMetaData.getName().equalsIgnoreCase(s)).collect(Collectors.toList());
+        Collection<String> paths = new HashSet<>();
+        for(FileMetaData f : matching) paths.add(getRelativePathOfDirectory(new File(f.getFullPath().replaceFirst("\\{1,2}|/.*$", ""))));
+        return paths;
     }
 
     @Override
