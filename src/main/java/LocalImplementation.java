@@ -1,9 +1,6 @@
 import exceptions.FileException;
 import exceptions.InvalidConstraintException;
-import storage.DateType;
-import storage.FileMetaData;
-import storage.Filter;
-import storage.StorageConstraint;
+import storage.*;
 
 import java.io.*;
 import java.nio.file.*;
@@ -367,8 +364,10 @@ public class LocalImplementation extends Storage{
     }
 
     @Override
-    public Collection<FileMetaData> searchByNameSorted(String s, Boolean aBoolean) {
-        return null;
+    public Collection<FileMetaData> searchByNameSorted(String path, Boolean ascending) {
+        Collection<FileMetaData> allFiles = searchFilesInDirectory(path);
+        Sorter s = new Sorter(ascending);
+        return s.applySorter(allFiles);
     }
 
     @Override
