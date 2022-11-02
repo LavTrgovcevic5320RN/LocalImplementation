@@ -7,6 +7,7 @@ import java.io.*;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class LocalImplementation extends Storage{
     private static LocalImplementation instance = null;
@@ -309,12 +310,24 @@ public class LocalImplementation extends Storage{
 
     @Override
     public Collection<FileMetaData> searchFilesInDirectoryAndBelow(String path) {
-        return null;
+        File dirFile = new File(getAbsolutePath(path));
+        if(!dirFile.isDirectory()) throw new FileException("File is not directory");
+        Collection<FileMetaData> ret = new ArrayList<>();
+        for(File f : dirFile.listFiles()) {
+            if(f.isDirectory()) ret.addAll(searchFilesInDirectoryAndBelow(getRelativePathOfDirectory(f)));
+            else ret.add(readMetadata(f));
+        }
+        return ret;
     }
 
     @Override
     public Collection<FileMetaData> searchFilesWithExtension(String path, String extension) {
-        return null;
+        extension = extension.trim();
+        extension = extension.toLowerCase();
+        if(!extension.matches("\\.?[\\w\\d.]+")) throw new RuntimeException(String.format("Extension \"%s\" is not valid", extension));
+        Collection<FileMetaData> allFiles = searchFilesInDirectoryAndBelow("#");
+        final String finalExtension = extension;
+        return allFiles.stream().filter(fileMetaData -> fileMetaData.getName().toLowerCase().endsWith(finalExtension)).collect(Collectors.toList());
     }
 
     @Override
