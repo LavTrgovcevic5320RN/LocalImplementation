@@ -241,7 +241,7 @@ public class LocalImplementation extends Storage{
             try {
                 String resultingPath = rootDirectory.getPath() + "/" + destination + "/" + Paths.get(source).getFileName();
                 resultingPath = resultingPath.replaceFirst("#[/\\\\]", "");
-                System.out.println(resultingPath);
+//                System.out.println(resultingPath);
                 result = Files.move(Paths.get(source), Paths.get(resultingPath), StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {
                 e.printStackTrace();
