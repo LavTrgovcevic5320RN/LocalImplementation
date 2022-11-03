@@ -7,6 +7,7 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.apache.commons.io.FileUtils;
 
 public class LocalImplementation extends Storage{
     private static LocalImplementation instance = null;
@@ -103,8 +104,11 @@ public class LocalImplementation extends Storage{
             allowedFiles = storageConstraint.getMaxNumberOfFiles().get(path);
             if(allowedFiles < 0) return true;
             return (allowedFiles >= noFiles + add);
+        }else{
+            return true;
         }
-        throw new RuntimeException("Path " + dir + " not directory");
+
+//        throw new RuntimeException("Path " + dir + " not directory");
     }
 
     // returns false if extension illegal. true if legal
@@ -127,6 +131,11 @@ public class LocalImplementation extends Storage{
             storageConstraint.getMaxNumberOfFiles().put(path +  directoryName, i);
             writeConfiguration();
         } else throw new InvalidConstraintException("Directory full");
+    }
+
+    @Override
+    public void createExpanded(String path, String pattern) {
+
     }
 
     private long getSubSize(File directory) {
@@ -242,16 +251,30 @@ public class LocalImplementation extends Storage{
     }
 
     @Override
-    public void createExpanded(String path, String pattern) {
-        List<String> list = BraceExpansion.expand(pattern);
+    public void download(String destination, String...sources) {
+        List<String> list = new ArrayList<>();
+        for(String source: sources)
+            if(checkExtension(source))
+                list.add(source);
 
+        for(String source : list) {
+            String sourcePath = getAbsolutePath(source);
+            File sourceFolder = new File(sourcePath);
+            sourceFolder.mkdirs();
 
+            String destinationPath = destination + source.replaceFirst("#", "");
+            File destinationFolder = new File(destinationPath);
+            if (!sourceFolder.exists())
+                throw new FileException(String.format("File selected for move on path %s does not exist", sourceFolder.getAbsolutePath()));
+
+            try {
+                FileUtils.copyDirectory(sourceFolder, destinationFolder);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
-    @Override
-    public void download(String s, String s1) {
-
-    }
 
     @Override
     public void rename(String newName, String path) {
