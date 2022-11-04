@@ -25,12 +25,10 @@ public class LocalImplementation extends Storage{
         if(directory.exists() && directory.isDirectory() && directory.list().length > 0) throw new FileException("Storage can not be initialized, target directory exists");
         rootDirectory = directory;
         storageConstraint = new StorageConstraint();
-        if (size >= 0) {
+        if (size >= 0)
             storageConstraint.setByteSizeQuota(size);
-        }
 
         storageConstraint.getMaxNumberOfFiles().put("#", maxFiles >= 0 ? maxFiles : -1);
-
 
         if (bannedExtensions.length > 0) {
             for(int i = 0 ; i < bannedExtensions.length; i++) bannedExtensions[i] = bannedExtensions[i].toLowerCase();
