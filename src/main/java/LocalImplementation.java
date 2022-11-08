@@ -12,6 +12,7 @@ import org.apache.commons.io.FileUtils;
 public class LocalImplementation extends Storage{
     private static LocalImplementation instance = null;
     private static File rootDirectory;
+    private boolean bulkMode = false;
 
     public static LocalImplementation getInstance() {
         if (instance == null)
@@ -41,27 +42,6 @@ public class LocalImplementation extends Storage{
             writeConfiguration();
             System.out.println("Kreirano skladiste na " + directory.getPath());
         }
-//
-//            if (storageName.contains(".")) {
-//                String ekstenzija = storageName.substring(storageName.indexOf(".") + 1);
-//                for (String s : rootFolder.getIllegalExtensions()) {
-////                System.out.println(s);
-//                    if (s.equals(ekstenzija))
-//                        try {
-//                            throw new Exception();
-//                        } catch (Exception e) {
-//                            throw new RuntimeException(e);
-//                        }
-//                }
-//            }
-//
-//            if (!rootFolder.getIllegalExtensions().isEmpty()) {
-//                for (String s : rootFolder.getIllegalExtensions())
-//                    if (storageName.endsWith(s))
-//                        throw new FileException("greska sa fajlom");
-//            }
-//        System.out.println(directory.isDirectory());
-//        System.out.println(directory.getName());
     }
 
     private void writeConfiguration() {
@@ -102,11 +82,13 @@ public class LocalImplementation extends Storage{
             allowedFiles = storageConstraint.getMaxNumberOfFiles().get(path);
             if(allowedFiles < 0) return true;
             return (allowedFiles >= noFiles + add);
-        }else{
+        }else if(!dir.exists() && bulkMode){
+            path = path.replaceAll("[/\\\\]+$", "");
+            create(path.substring(Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"))+1),
+                    path.substring(0, Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"))+1));
             return true;
         }
-
-//        throw new RuntimeException("Path " + dir + " not directory");
+        throw new RuntimeException("Path " + dir + " not directory");
     }
 
     // returns false if extension illegal. true if legal
@@ -125,15 +107,29 @@ public class LocalImplementation extends Storage{
         String s = getAbsolutePath(path + directoryName);
         if(checkIfAdditionValid(path, 1)) {
             File newDir = new File(s);
-            System.out.println(newDir.mkdirs());
+            if(!newDir.exists()) newDir.mkdirs();
+            else System.err.println("Directory exists!");
             storageConstraint.getMaxNumberOfFiles().put(path +  directoryName, i);
-            writeConfiguration();
+            if(!bulkMode) writeConfiguration();
         } else throw new InvalidConstraintException("Directory full");
     }
 
     @Override
     public void createExpanded(String path, String pattern) {
-
+        bulkMode = true;
+        if(checkIfAdditionValid(path, BraceExpansion.getTopLevelDirectoryCount(pattern)))
+            for(String s : BraceExpansion.expand(pattern)){
+                String full = path + s;
+                full = full.replaceAll("\\\\+", "/");
+                full = full.replaceAll("/+", "/");
+                int index = Math.max(full.lastIndexOf("/"), full.lastIndexOf("\\"));
+                String actualName = full.substring(index +1);
+                String actualPath = full.substring(0, index +1);
+                create(actualName, actualPath);
+            }
+        else throw new InvalidConstraintException("Too many files!");
+        writeConfiguration();
+        bulkMode = false;
     }
 
     private long getSubSize(File directory) {

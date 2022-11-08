@@ -8,11 +8,13 @@ public class BraceExpansion {
 
     /**
      * Brace-expands a string that contains a bash-like pattern
+     * Also accepts strings with format {a-z}, {1-9}...
      * @param str string that can contain expandable patterns
      * @return list of all expanded Strings formed from the source
      */
     public static List<String> expand(String str) {
         ret = new ArrayList<>();
+        str = str.replaceAll("(?<=\\{[a-z0-9]{1,10})-(?=[a-z0-9]{1,10}})", "..");
         expandR("", str, "");
         return ret;
     }
@@ -87,5 +89,38 @@ public class BraceExpansion {
             }
         }
         else ret.add(s);
+    }
+
+    public static int getTopLevelDirectoryCount(String pattern) {
+        String s = pattern.trim();
+        s = s.replaceAll("(?<=\\{[a-z0-9]{1,10})-(?=[a-z0-9]{1,10}})", "..");
+        Pattern numPattern = Pattern.compile(numberRegex);
+        Pattern charPattern = Pattern.compile(charRegex);
+        Matcher charMatcher = charPattern.matcher(s);
+        Matcher numMatcher = numPattern.matcher(s);
+        int nB,nE,cB,cE;
+        charMatcher.find();
+        numMatcher.find();
+        if(numMatcher.groupCount() > 0 && charMatcher.groupCount() > 0) {
+            String substr = numMatcher.group();
+            nB = s.indexOf(substr);
+            nE = nB + substr.length();
+            substr = charMatcher.group();
+            cB = s.indexOf(substr);
+            cE = cB + substr.length();
+            if(nB < cB) return expand(s.substring(nB,nE)).size();
+            else return expand(s.substring(cB,cE)).size();
+        }
+        else if(numMatcher.find()) {
+            String substr = numMatcher.group();
+            nB = s.indexOf(substr);
+            nE = nB + substr.length();
+            return expand(s.substring(nB,nE)).size();
+        } else {
+            String substr = charMatcher.group();
+            cB = s.indexOf(substr);
+            cE = cB + substr.length();
+            return expand(s.substring(cB,cE)).size();
+        }
     }
 }
