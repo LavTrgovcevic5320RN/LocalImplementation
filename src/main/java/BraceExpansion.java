@@ -14,7 +14,7 @@ public class BraceExpansion {
      */
     public static List<String> expand(String str) {
         ret = new ArrayList<>();
-        str = str.replaceAll("(?<=\\{[a-z0-9]{1,10})-(?=[a-z0-9]{1,10}})", "..");
+        str = str.replaceAll("(?<=\\{[a-zA-Z0-9]{1,10})-(?=[a-zA-Z0-9]{1,10}})", "..");
         expandR("", str, "");
         return ret;
     }
@@ -93,7 +93,7 @@ public class BraceExpansion {
 
     public static int getTopLevelDirectoryCount(String pattern) {
         String s = pattern.trim();
-        s = s.replaceAll("(?<=\\{[a-z0-9]{1,10})-(?=[a-z0-9]{1,10}})", "..");
+        s = s.replaceAll("(?<=\\{[a-zA-Z0-9]{1,10})-(?=[a-zA-Z0-9]{1,10}})", "..");
         Pattern numPattern = Pattern.compile(numberRegex);
         Pattern charPattern = Pattern.compile(charRegex);
         Matcher charMatcher = charPattern.matcher(s);

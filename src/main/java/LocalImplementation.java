@@ -291,7 +291,7 @@ public class LocalImplementation extends Storage{
 
     @Override
     public void setMaxFiles(String s, int i) {
-        // postaviti u constraint mapi vrednost na i
+        //todo postaviti vrednost u mapi za folder na putanji s na i pa ispisati konfiguraciju
     }
 
     @Override
@@ -321,6 +321,7 @@ public class LocalImplementation extends Storage{
 
     @Override
     public Collection<FileMetaData> searchFilesInAllDirectories(String path) {
+        //todo utvrditi sta ovde treba da se uradi
         return null;
     }
 
@@ -366,22 +367,13 @@ public class LocalImplementation extends Storage{
         Collection<FileMetaData> allFiles = searchFilesInDirectoryAndBelow("#");
         Collection<FileMetaData> matching = allFiles.stream().filter(fileMetaData -> fileMetaData.getName().equalsIgnoreCase(s)).collect(Collectors.toList());
         Collection<String> paths = new HashSet<>();
-        for(FileMetaData f : matching) paths.add(f.getFullPath().substring(0, Math.max(f.getFullPath().lastIndexOf('\\'), f.getFullPath().lastIndexOf('/'))));
+        for (FileMetaData f : matching)
+            paths.add(f.getFullPath().substring(0, Math.max(f.getFullPath().lastIndexOf('\\'), f.getFullPath().lastIndexOf('/'))));
         return paths;
     }
 
     @Override
-    public Date getCreationDate(String s) {
-        return null;
-    }
-
-    @Override
-    public Date getModificationDate(String s) {
-        return null;
-    }
-
-    @Override
-    public Collection<FileMetaData> searchByNameSorted(String path, Boolean ascending) {
+    public Collection<FileMetaData> searchByNameSorted(String path, boolean ascending) {
         Collection<FileMetaData> allFiles = searchFilesInDirectory(path);
         Sorter s = new Sorter(ascending);
         return s.applySorter(allFiles);
