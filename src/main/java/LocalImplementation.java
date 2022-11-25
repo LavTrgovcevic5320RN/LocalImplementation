@@ -10,24 +10,28 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 
 public class LocalImplementation extends Storage{
-    private static LocalImplementation instance;
-    private static File rootDirectory;
+//    private static LocalImplementation instance;
+    private File rootDirectory;
     private boolean bulkMode = false;
 
     static {
-        StorageManager.registerStorage(LocalImplementation.getInstance());
+        StorageManager.registerStorage(new LocalImplementation());
     }
 
-    public static LocalImplementation getInstance() {
-        if (instance == null)
-            instance = new LocalImplementation();
-        return instance;
-    }
+//    public static LocalImplementation getInstance() {
+//        if (instance == null)
+//            instance = new LocalImplementation();
+//        return instance;
+//    }
 
     @Override
     public void initialiseDirectory(String storageName, String path, int size, int maxFiles, String... bannedExtensions) {
-        File directory = new File(path + "\\" + storageName);
-        if(directory.exists() && directory.isDirectory() && directory.list().length > 0) throw new FileException("Storage can not be initialized, target directory exists");
+        File directory = new File(path + "/" + storageName);
+//        System.out.println(directory.exists());
+//        System.out.println(directory.isDirectory());
+//        System.out.println(directory.list().length > 0);
+        if(directory.exists() && directory.isDirectory() && directory.list().length > 0)
+            throw new FileException("Storage can not be initialized, target directory exists");
         rootDirectory = directory;
         storageConstraint = new StorageConstraint();
         if (size >= 0)
@@ -276,7 +280,8 @@ public class LocalImplementation extends Storage{
 
     @Override
     public void rename(String newName, String path) {
-        File fileOldName = new File(path);
+        String sourcePath = getAbsolutePath(path);
+        File fileOldName = new File(sourcePath);
         File fileNewName = new File(fileOldName.getParentFile().getPath() + "\\" + newName);
         System.out.println("promenjeno ime je:" + fileOldName.renameTo(fileNewName));
     }
