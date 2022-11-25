@@ -10,9 +10,13 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 
 public class LocalImplementation extends Storage{
-    private static LocalImplementation instance = null;
+    private static LocalImplementation instance;
     private static File rootDirectory;
     private boolean bulkMode = false;
+
+    static {
+        StorageManager.registerStorage(LocalImplementation.getInstance());
+    }
 
     public static LocalImplementation getInstance() {
         if (instance == null)
@@ -158,7 +162,7 @@ public class LocalImplementation extends Storage{
         if(!dest.exists() || !dest.isDirectory()) throw new FileException("Destination is not an existing directory");
         if(!checkIfAdditionValid(destination, sources.length)) throw new FileException("Destination full");
         long size = 0;
-        for(String s : sources) {
+        for(String s : sources){
             File source = new File(s);
             dest = new File(dest, source.getName());
             if(!source.exists()) throw new FileException("Source does not exist");
@@ -169,7 +173,7 @@ public class LocalImplementation extends Storage{
                 e1.printStackTrace();
             }
         }
-        if(checkForSpace(size)) for(String s : sources) {
+        if(checkForSpace(size)) for(String s : sources){
             try {
                 Path result = Files.move(Paths.get(s), Paths.get(dest.getAbsolutePath()), StandardCopyOption.REPLACE_EXISTING);
                 if(!result.toFile().exists()) System.err.println("Upload failed");
