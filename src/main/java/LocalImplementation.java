@@ -351,14 +351,14 @@ public class LocalImplementation extends Storage{
         extension = extension.trim();
         extension = extension.toLowerCase();
         if(!extension.matches("\\.?[\\w\\d.]+")) throw new RuntimeException(String.format("Extension \"%s\" is not valid", extension));
-        Collection<FileMetaData> allFiles = searchFilesInDirectoryAndBelow("#");
+        Collection<FileMetaData> allFiles = searchFilesInDirectoryAndBelow(path);
         final String finalExtension = extension;
         return allFiles.stream().filter(fileMetaData -> fileMetaData.getName().toLowerCase().endsWith(finalExtension)).collect(Collectors.toList());
     }
 
     @Override
     public Collection<FileMetaData> searchFilesThatContain(String path, String substring) {
-        Collection<FileMetaData> allFiles = searchFilesInDirectoryAndBelow("#");
+        Collection<FileMetaData> allFiles = searchFilesInDirectoryAndBelow(path);
         final String finalSubstring = substring.toLowerCase();
         return allFiles.stream().filter(fileMetaData -> fileMetaData.getName().toLowerCase().contains(finalSubstring)).collect(Collectors.toList());
     }
