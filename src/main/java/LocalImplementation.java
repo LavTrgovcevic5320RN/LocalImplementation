@@ -10,26 +10,16 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 
 public class LocalImplementation extends Storage{
-//    private static LocalImplementation instance;
     private File rootDirectory;
     private boolean bulkMode = false;
 
     static {
         StorageManager.registerStorage(new LocalImplementation());
     }
-
-//    public static LocalImplementation getInstance() {
-//        if (instance == null)
-//            instance = new LocalImplementation();
-//        return instance;
-//    }
-
     @Override
     public void initialiseDirectory(String storageName, String path, int size, int maxFiles, String... bannedExtensions) {
         File directory = new File(path + "/" + storageName);
-//        System.out.println(directory.exists());
-//        System.out.println(directory.isDirectory());
-//        System.out.println(directory.list().length > 0);
+
         if(directory.exists() && directory.isDirectory() && directory.list().length > 0)
             throw new FileException("Storage can not be initialized, target directory exists");
         rootDirectory = directory;
@@ -300,7 +290,8 @@ public class LocalImplementation extends Storage{
 
     @Override
     public void setMaxFiles(String s, int i) {
-        //todo postaviti vrednost u mapi za folder na putanji s na i pa ispisati konfiguraciju
+        s = s.replaceFirst("[/\\\\]$", "");
+        storageConstraint.getMaxNumberOfFiles().put(s, i);
     }
 
     @Override
@@ -325,12 +316,6 @@ public class LocalImplementation extends Storage{
         } catch (IOException ioException) {
             ioException.printStackTrace();
         }
-        return null;
-    }
-
-    @Override
-    public Collection<FileMetaData> searchFilesInAllDirectories(String path) {
-        //todo utvrditi sta ovde treba da se uradi
         return null;
     }
 
